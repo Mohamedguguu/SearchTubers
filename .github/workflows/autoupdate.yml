@@ -1,0 +1,45 @@
+name: Auto‐update Roblox YouTubers
+
+# Run on a schedule: here, daily at midnight UTC.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+  # Optionally: allow manual dispatch from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  update-players:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Check out the repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2) Set up Python (3.11)
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # 3) Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-api-python-client
+
+      # 4) Run main.py
+      - name: Run update script
+        run: |
+          python main.py
+
+      # 5) Commit & push changes if players.json was modified
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto‐update players.json (Roblox YouTubers) – ${{ github.event_name }} @ ${{ github.run_date }}"
+          file_pattern: players.json
+          branch: ${{ github.ref_name }}
+          author_name: github-actions
+          author_email: github-actions@github.com
