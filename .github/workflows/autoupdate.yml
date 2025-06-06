@@ -1,5 +1,10 @@
 # File: .github/workflows/update.yml
 name: "Auto-update Roblox YouTube Channels"
+
+# Ensure the workflow’s GITHUB_TOKEN has write permissions to commit & push
+permissions:
+  contents: write
+
 on:
   schedule:
     # Runs every 5 minutes
@@ -12,6 +17,10 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          # Provide full history and persist credentials so git push will work
+          fetch-depth: 0
+          persist-credentials: true
 
       - name: Set up Python 3.x
         uses: actions/setup-python@v5
@@ -35,9 +44,9 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          # If players.json was modified, commit and push back to the repo
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           if [[ -n "$(git status --porcelain players.json)" ]]; then
             git add players.json
             git commit -m "Auto-update players.json: $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
@@ -45,4 +54,3 @@ jobs:
           else
             echo "No changes to players.json"
           fi
-
