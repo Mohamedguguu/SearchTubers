@@ -1,11 +1,14 @@
+# .github/workflows/autoupdate.yml
 name: Auto‐update Roblox YouTubers
 
-# Run on a schedule: here, daily at midnight UTC.
+# 1) Grant write access to contents so our bot can push players.json changes
+permissions:
+  contents: write
+
 on:
   schedule:
+    # Runs every day at midnight UTC. Adjust cron as needed.
     - cron: '0 0 * * *'
-
-  # Optionally: allow manual dispatch from the Actions tab
   workflow_dispatch:
 
 jobs:
@@ -13,33 +16,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Check out the repo
+      # 2) Check out the repository, with credentials persisted so we can push
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          # Ensure that the GITHUB_TOKEN can be used by subsequent steps to push
+          persist-credentials: true
 
-      # 2) Set up Python (3.11)
+      # 3) Set up Python
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # 3) Install dependencies
+      # 4) Install youtube API client
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install google-api-python-client
-
-      # 4) Run main.py
       - name: Run update script
-        run: |
-          python main.py
-
-      # 5) Commit & push changes if players.json was modified
-      - name: Commit and push changes
+        run: python main.py
+      - name: Commit & push updated players.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto‐update players.json (Roblox YouTubers) – ${{ github.event_name }} @ ${{ github.run_date }}"
+       
           file_pattern: players.json
+       
+          commit_message: "Auto‐update players.json (Roblox YouTubers) — ${{ github.event_name }} @ ${{ github.run_id }}"
+    
           branch: ${{ github.ref_name }}
           author_name: github-actions
           author_email: github-actions@github.com
