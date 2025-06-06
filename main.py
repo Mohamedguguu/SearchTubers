@@ -1,6 +1,7 @@
 import requests
 import json
 import datetime
+import time
 
 API_KEY = "AIzaSyC4KcMWY84RroIbtXTiwo28Md9BU2wdWEI"
 SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
@@ -12,6 +13,7 @@ MAX_RESULTS = 50
 MIN_SUBS = 1000
 DAYS_ACTIVE = 30
 OUTPUT_FILE = "players.json"
+INTERVAL = 300  # 5 minutes in seconds
 
 def get_recent_channels():
     params = {
@@ -25,6 +27,8 @@ def get_recent_channels():
     return response.json().get("items", [])
 
 def get_channel_details(channel_ids):
+    if not channel_ids:
+        return []
     params = {
         "key": API_KEY,
         "id": ",".join(channel_ids),
@@ -62,38 +66,50 @@ def save_data(data):
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-def main():
+def main_cycle():
     raw_channels = get_recent_channels()
     channel_ids = [item["snippet"]["channelId"] for item in raw_channels]
     details = get_channel_details(channel_ids)
 
     result = {}
     for ch in details:
-        subs = int(ch["statistics"].get("subscriberCount", "0"))
-        if subs < MIN_SUBS:
-            continue
+        try:
+            subs = int(ch["statistics"].get("subscriberCount", "0"))
+            if subs < MIN_SUBS:
+                continue
 
-        lang = ch["snippet"].get("defaultLanguage", "en").lower()
-        if lang not in ["en", "en-us", "en-gb"]:
-            continue
+            lang = ch["snippet"].get("defaultLanguage", "en").lower()
+            if lang not in ["en", "en-us", "en-gb", None]:
+                continue
 
-        uploads_id = ch["contentDetails"]["relatedPlaylists"]["uploads"]
-        latest_date = get_latest_video_date(uploads_id)
-        if not latest_date or not is_recent(latest_date):
-            continue
+            uploads_id = ch["contentDetails"]["relatedPlaylists"]["uploads"]
+            latest_date = get_latest_video_date(uploads_id)
+            if not latest_date or not is_recent(latest_date):
+                continue
 
-        cid = ch["id"]
-        result[cid] = {
-            "channelId": cid,
-            "title": ch["snippet"]["title"],
-            "publishedAt": ch["snippet"]["publishedAt"],
-            "subscriberCount": subs,
-            "lastUpload": latest_date,
-            "defaultLanguage": lang,
-        }
+            cid = ch["id"]
+            result[cid] = {
+                "channelId": cid,
+                "title": ch["snippet"]["title"],
+                "publishedAt": ch["snippet"]["publishedAt"],
+                "subscriberCount": subs,
+                "lastUpload": latest_date,
+                "defaultLanguage": lang,
+            }
+        except Exception as e:
+            print(f"Error processing channel: {e}")
 
     save_data(result)
-    print(f"Saved {len(result)} active Roblox YouTubers to {OUTPUT_FILE}")
+    print(f"[{datetime.datetime.now()}] Saved {len(result)} active Roblox YouTubers to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
-    main()
+    while True:
+        start = time.time()
+        try:
+            main_cycle()
+        except Exception as err:
+            print("Error in cycle:", err)
+        elapsed = time.time() - start
+        wait_time = INTERVAL - elapsed
+        if wait_time > 0:
+            time.sleep(wait_time)
