@@ -14,7 +14,7 @@ MAX_RESULTS = 50      # Number of search results per page (max 50)
 
 # How often (in seconds) to re‐run the search & update.
 # 86400 seconds = 24 hours. Change as needed.
-UPDATE_INTERVAL_SECONDS = 86400
+UPDATE_INTERVAL_SECONDS = 20
 
 # ─── SET UP YOUTUBE CLIENT ───────────────────────────────────────────────────────
 youtube = build("youtube", "v3", developerKey=API_KEY)
